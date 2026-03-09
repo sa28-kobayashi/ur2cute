@@ -783,6 +783,12 @@ body::before {
     </div>
 
     <div class="admin-card">
+      <div class="admin-label">🔬 ストレージ診断</div>
+      <button class="admin-btn btn-teal" onclick="diagStorage()">診断を実行</button>
+      <pre id="diagResult" style="margin-top:10px;font-size:11px;color:var(--text-sub);background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;white-space:pre-wrap;word-break:break-all;display:none;"></pre>
+    </div>
+
+    <div class="admin-card">
       <div class="admin-label">📝 提出(ていしゅつ)ログ</div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
         <span id="submitLogCount" style="font-size:12px;color:var(--text-sub);"></span>
@@ -1003,8 +1009,8 @@ function resetDailyActions() {
 // TODAY SET MANAGEMENT
 // =========================================================
 function buildTodaySet() {
-  // 今日のセットがすでに今日分なら何もしない
-  if (state.todaySetDate === todayStr()) return;
+  // 今日のセットがすでに今日分、かつ中身がある場合のみスキップ
+  if (state.todaySetDate === todayStr() && state.todaySet && state.todaySet.length > 0) return;
 
   // 未撃破かつ既にセットに入っていた語（前日から持ち越し）を引き継ぐ
   const carried = (state.todaySet || []).filter(id => {
@@ -1930,6 +1936,71 @@ function buildCalendar() {
 
   title.textContent = '📅 れんぞく記録';
   body.innerHTML = html;
+}
+
+// =========================================================
+// STORAGE DIAGNOSTICS
+// =========================================================
+async function diagStorage() {
+  const el = document.getElementById('diagResult');
+  el.style.display = 'block';
+  el.textContent = '診断中...';
+
+  const lines = [];
+
+  // 1. window.storage availability
+  lines.push('=== window.storage ===');
+  lines.push('利用可能: ' + (window.storage ? 'YES' : 'NO'));
+
+  // 2. localStorage availability
+  lines.push('\n=== localStorage ===');
+  try {
+    localStorage.setItem('_test', '1');
+    localStorage.removeItem('_test');
+    lines.push('利用可能: YES');
+  } catch(e) {
+    lines.push('利用可能: NO (' + e.message + ')');
+  }
+
+  // 3. Current storage keys
+  lines.push('\n=== 保存済みキー ===');
+  try {
+    if (window.storage) {
+      const keys = await window.storage.list('vq_');
+      lines.push('window.storage keys: ' + JSON.stringify(keys));
+    }
+  } catch(e) {
+    lines.push('window.storage list error: ' + e.message);
+  }
+  try {
+    const lsKeys = Object.keys(localStorage).filter(k => k.startsWith('vq_'));
+    lines.push('localStorage keys: ' + JSON.stringify(lsKeys));
+    lsKeys.forEach(k => {
+      const v = localStorage.getItem(k);
+      lines.push('  ' + k + ': ' + (v ? v.substring(0, 80) + '...' : 'null'));
+    });
+  } catch(e) {
+    lines.push('localStorage read error: ' + e.message);
+  }
+
+  // 4. Current state summary
+  lines.push('\n=== 現在のstate ===');
+  lines.push('words数: ' + words.length);
+  lines.push('wordProgress数: ' + Object.keys(state.wordProgress).length);
+  lines.push('todaySet: ' + JSON.stringify(state.todaySet));
+  lines.push('todaySetDate: ' + state.todaySetDate);
+
+  // 5. Test write/read
+  lines.push('\n=== 書き込みテスト ===');
+  try {
+    await storageSave('vq_diagtest', { ok: true, ts: Date.now() });
+    const r = await storageLoad('vq_diagtest');
+    lines.push('書き込み→読み込み: ' + (r && r.ok ? 'OK' : 'FAIL: ' + JSON.stringify(r)));
+  } catch(e) {
+    lines.push('エラー: ' + e.message);
+  }
+
+  el.textContent = lines.join('\n');
 }
 
 // =========================================================
