@@ -118,6 +118,140 @@ body::before {
 .bar-xp { background: linear-gradient(90deg, var(--xp-blue), var(--accent-teal)); }
 .streak-display { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .streak-fire { font-size: 28px; animation: flicker 1.5s ease-in-out infinite alternate; }
+
+/* ---- all-clear animation ---- */
+#allClearAnim {
+  position: fixed; inset: 0; z-index: 9100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0); pointer-events: none; opacity: 0;
+}
+#allClearAnim.show {
+  pointer-events: all;
+  animation: allClearFade 3.5s ease forwards;
+}
+@keyframes allClearFade {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+.allclear-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(255,192,120,0.18) 0%, rgba(0,0,0,0.55) 100%);
+}
+.allclear-petals {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+}
+.petal {
+  position: absolute;
+  font-size: 28px;
+  animation: petalFall linear forwards;
+  opacity: 0;
+}
+@keyframes petalFall {
+  0%   { opacity: 0; transform: translateY(-40px) rotate(0deg); }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(110vh) rotate(720deg); }
+}
+.allclear-content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  text-align: center; padding: 0 32px;
+}
+.allclear-badge {
+  font-size: 72px;
+  filter: drop-shadow(0 0 20px rgba(255,200,100,0.8));
+  animation: badgePop 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.3s both;
+}
+@keyframes badgePop {
+  0%   { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+.allclear-title {
+  font-size: 32px; font-weight: 900; color: #fff;
+  text-shadow: 0 0 20px rgba(255,180,80,0.9), 0 2px 4px rgba(0,0,0,0.5);
+  animation: slideUp 0.5s ease 0.5s both;
+}
+.allclear-message {
+  font-size: 17px; font-weight: 700; color: #fef3c7;
+  line-height: 2;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  animation: slideUp 0.5s ease 0.7s both;
+  max-width: 300px;
+}
+.allclear-message ruby rt {
+  font-size: 10px; font-weight: 400; opacity: 0.85;
+}
+@keyframes slideUp {
+  0%   { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.allclear-tap {
+  font-size: 13px; color: rgba(255,255,255,0.6);
+  animation: slideUp 0.5s ease 1.2s both;
+  margin-top: 8px;
+}
+
+/* ---- streak animation ---- */
+#streakAnim {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+}
+#streakAnim.show { animation: streakFade 2.2s ease forwards; }
+@keyframes streakFade {
+  0%   { opacity: 0; transform: scale(0.7); }
+  15%  { opacity: 1; transform: scale(1.05); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+.streak-anim-bolt {
+  font-size: 80px;
+  filter: drop-shadow(0 0 24px #facc15) drop-shadow(0 0 48px #f59e0b);
+  animation: boltFlash 0.15s ease-in-out 3;
+}
+@keyframes boltFlash {
+  0%, 100% { filter: drop-shadow(0 0 24px #facc15) drop-shadow(0 0 48px #f59e0b); }
+  50%       { filter: drop-shadow(0 0 60px #fff) drop-shadow(0 0 90px #facc15) brightness(2); }
+}
+.streak-anim-num {
+  font-size: 52px; font-weight: 900;
+  color: #facc15;
+  text-shadow: 0 0 20px #f59e0b, 0 0 40px #f59e0b, 0 0 2px #fff;
+  letter-spacing: 2px;
+  margin-top: -8px;
+}
+.streak-anim-label {
+  font-size: 18px; font-weight: 700; color: #fff;
+  text-shadow: 0 0 10px #f59e0b;
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+.streak-anim-lines {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.streak-anim-lines::before,
+.streak-anim-lines::after {
+  content: '';
+  position: absolute;
+  width: 2px; height: 60vh;
+  background: linear-gradient(to bottom, transparent, #facc15, transparent);
+  top: 20%; left: 50%;
+  animation: lightningL 0.4s ease-out 0.1s both;
+}
+.streak-anim-lines::before {
+  transform: rotate(-15deg) translateX(-80px);
+}
+.streak-anim-lines::after {
+  transform: rotate(15deg) translateX(80px);
+}
+@keyframes lightningL {
+  0%   { opacity: 0; height: 0; }
+  30%  { opacity: 1; height: 60vh; box-shadow: 0 0 12px #facc15, 0 0 30px #f59e0b; }
+  100% { opacity: 0; height: 60vh; }
+}
 @keyframes flicker { 0% { transform: scale(1) rotate(-3deg); } 100% { transform: scale(1.1) rotate(3deg); } }
 .streak-num { font-size: 32px; font-weight: 900; color: var(--accent-pink); line-height: 1; }
 .defeated-count { font-size: 26px; font-weight: 900; color: var(--hp-green); }
@@ -800,6 +934,26 @@ body::before {
 
 </div>
 
+<!-- ALL CLEAR ANIMATION -->
+<div id="allClearAnim" onclick="closeAllClear()">
+  <div class="allclear-bg"></div>
+  <div class="allclear-petals" id="allClearPetals"></div>
+  <div class="allclear-content">
+    <div class="allclear-badge">🌸</div>
+    <div class="allclear-title">今日のバトル完了！</div>
+    <div class="allclear-message" id="allClearMsg">よくがんばったね！</div>
+    <div class="allclear-tap">タップして閉じる</div>
+  </div>
+</div>
+
+<!-- STREAK ANIMATION -->
+<div id="streakAnim">
+  <div class="streak-anim-lines"></div>
+  <div class="streak-anim-bolt">⚡</div>
+  <div class="streak-anim-num" id="streakAnimNum">0</div>
+  <div class="streak-anim-label">日れんぞく！</div>
+</div>
+
 <!-- CALENDAR MODAL -->
 <div class="modal-overlay" id="calendarModal" onclick="if(event.target===this)closeCalendar()">
   <div class="modal-popup" style="max-width:380px;width:95%;">
@@ -1204,6 +1358,7 @@ function doRead(wordId) {
     if (state.lastPlayDate !== today) {
       state.streak += 1;
       state.lastPlayDate = today;
+      setTimeout(() => showStreakAnim(state.streak), 800);
     }
     saveAll();
     buildBattleCards();
@@ -1458,15 +1613,10 @@ async function applyDamage(wordId, damage, action) {
   if (state.lastPlayDate !== today) {
     state.streak += 1;
     state.lastPlayDate = today;
+    setTimeout(() => showStreakAnim(state.streak), 800);
   }
-  // playLog更新：全撃破かバトルのみか
-  const todayDefeated = state.defeatedWords.filter(d => d.defeatedDate === today).length;
-  const todayTotal = state.todaySet.length;
-  if (todayDefeated > 0 && todayDefeated >= todayTotal && todayTotal > 0) {
-    state.playLog[today] = 'all';
-  } else {
-    if (state.playLog[today] !== 'all') state.playLog[today] = 'battle';
-  }
+  // playLogをまずbattleで記録（全撃破判定は撃破後に行う）
+  if (state.playLog[today] !== 'all') state.playLog[today] = 'battle';
 
   await saveAll();
   updateStatusUI();
@@ -1474,8 +1624,17 @@ async function applyDamage(wordId, damage, action) {
 
   if (prog.hp <= 0 && !prog.defeated) {
     prog.defeated = true;
-    prog.defeatedDate = todayStr();  // 復習スケジュール起点（ISO形式）
+    prog.defeatedDate = todayStr();
     state.defeatedWords.push({ id: wordId, date: new Date().toLocaleDateString('ja-JP'), defeatedDate: todayStr() });
+
+    // 全撃破チェック（defeatedWords追加後に判定）
+    const newDefeated = state.defeatedWords.filter(d => d.defeatedDate === today).length;
+    const total = state.todaySet.length;
+    if (newDefeated >= total && total > 0) {
+      state.playLog[today] = 'all';
+      state._pendingAllClear = true;
+    }
+
     await saveAll();
     updateStatusUI();
     setTimeout(() => showDefeat(word), 400);
@@ -1499,6 +1658,10 @@ function showDefeat(word) {
 function closeDefeat() {
   document.getElementById('defeatOverlay').classList.remove('show');
   buildBattleCards();
+  if (state._pendingAllClear) {
+    state._pendingAllClear = false;
+    setTimeout(() => showAllClear(), 300);
+  }
 }
 
 function showLevelUp(level) {
@@ -1936,6 +2099,78 @@ function buildCalendar() {
 
   title.textContent = '📅 れんぞく記録';
   body.innerHTML = html;
+}
+
+// =========================================================
+// ALL CLEAR ANIMATION
+// =========================================================
+const ALL_CLEAR_MESSAGES = [
+  '千里の道も一歩から',
+  '<ruby>塵<rt>ちり</rt></ruby>も積もれば山となる',
+  '<ruby>継続<rt>けいぞく</rt></ruby>は力なり',
+  '<ruby>雨垂<rt>あまだ</rt></ruby>れ石を<ruby>穿<rt>うが</rt></ruby>つ',
+  'ローマは一日にして成らず',
+  '石の上にも三年',
+  '習うより慣れよ',
+  '努力に勝る天才なし',
+  '汗は<ruby>裏切<rt>うらぎ</rt></ruby>らない',
+  '実るほど頭を<ruby>垂<rt>た</rt></ruby>れる<ruby>稲穂<rt>いなほ</rt></ruby>かな',
+  '七転び八起き',
+  '苦あれば楽あり',
+  '負けるが勝ち',
+  '花は咲く前が一番美しい',
+  '明日は明日の風が吹く',
+  '笑う<ruby>門<rt>かど</rt></ruby>には福来たる',
+  '前向きな心が道を開く',
+  '今日の一歩が明日の百歩になる',
+  'やればできる、できるまでやる',
+  '小さな積み重ねが大きな夢をかなえる',
+];
+
+function showAllClear() {
+  const el = document.getElementById('allClearAnim');
+  // ランダムメッセージ（前回と被らないように）
+  const prev = parseInt(el.dataset.last ?? '-1');
+  let idx;
+  do { idx = Math.floor(Math.random() * ALL_CLEAR_MESSAGES.length); } while (idx === prev);
+  el.dataset.last = idx;
+  document.getElementById('allClearMsg').innerHTML = ALL_CLEAR_MESSAGES[idx];
+
+  // 花びらを生成
+  const petals = document.getElementById('allClearPetals');
+  petals.innerHTML = '';
+  const emojis = ['🌸','🌼','✨','💮','🌺'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (2.5 + Math.random() * 2) + 's';
+    p.style.animationDelay = (Math.random() * 1.5) + 's';
+    p.style.fontSize = (20 + Math.random() * 20) + 'px';
+    petals.appendChild(p);
+  }
+
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function closeAllClear() {
+  document.getElementById('allClearAnim').classList.remove('show');
+}
+
+// =========================================================
+// STREAK ANIMATION
+// =========================================================
+function showStreakAnim(streak) {
+  const el = document.getElementById('streakAnim');
+  document.getElementById('streakAnimNum').textContent = streak;
+  el.classList.remove('show');
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
 }
 
 // =========================================================
