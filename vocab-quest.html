@@ -723,6 +723,48 @@ body::before {
 }
 .review-empty { font-size: 11px; color: var(--text-sub); padding-top: 3px; }
 
+/* STORY */
+.story-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px; margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.story-card.unlocked { border-color: rgba(245,200,66,0.25); cursor: pointer; }
+.story-card.locked { opacity: 0.45; }
+.story-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 0;
+}
+.story-emoji { font-size: 22px; }
+.story-meta { flex: 1; }
+.story-word { font-size: 14px; font-weight: 800; color: var(--text-main); }
+.story-sub { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
+.story-badge {
+  font-size: 18px; flex-shrink: 0;
+}
+.story-body {
+  display: none; margin-top: 12px;
+  font-size: 13px; color: var(--text-main); line-height: 1.9;
+  background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px;
+}
+.story-body.open { display: block; }
+.story-body .highlight-word {
+  color: var(--accent-gold); font-weight: 800;
+  border-bottom: 1px solid rgba(245,200,66,0.4);
+}
+.story-quiz { margin-top: 12px; }
+.story-quiz-q { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
+.story-opt {
+  display: block; width: 100%; text-align: left;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 6px;
+  font-size: 13px; color: var(--text-main); cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.story-opt:hover { background: rgba(245,200,66,0.08); border-color: rgba(245,200,66,0.3); }
+.story-opt.correct { background: rgba(74,222,128,0.15); border-color: rgba(74,222,128,0.5); color: var(--hp-green); }
+.story-opt.wrong { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.4); color: var(--hp-red); }
+.story-result { font-size: 13px; font-weight: 700; margin-top: 8px; text-align: center; }
+
 /* WALL */
 .defeated-grid {
   display: grid;
@@ -838,7 +880,7 @@ body::before {
   <!-- TABS -->
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('battle',this)">⚔️ バトル</button>
-    <button class="tab-btn" onclick="switchTab('quest',this)">📜 クエスト</button>
+    <button class="tab-btn" onclick="switchTab('quest',this)">📖 ストーリー</button>
     <button class="tab-btn" onclick="switchTab('review',this)">🔄 ふくしゅう</button>
     <button class="tab-btn" onclick="switchTab('wall',this)">🏆 殿堂</button>
     <button class="tab-btn" onclick="switchTab('admin',this)">⚙️ 管理</button>
@@ -853,10 +895,11 @@ body::before {
     <div id="battleCards"></div>
   </div>
 
-  <!-- QUEST PANEL -->
+  <!-- STORY PANEL -->
   <div class="panel" id="panel-quest">
-    <div class="section-title" style="margin-bottom:12px;">📜 サイドクエスト</div>
-    <div id="questCards"></div>
+    <div class="section-title" style="margin-bottom:4px;">📖 ショートストーリー</div>
+    <div style="font-size:11px;color:var(--text-sub);margin-bottom:12px;">倒した語のストーリーを読もう。クイズで金バッジをゲット！</div>
+    <div id="storyCards"></div>
   </div>
 
   <!-- REVIEW PANEL -->
@@ -1043,6 +1086,7 @@ let state = {
   defeatedWords: [],      // [{id, defeatedDate}]
   wordProgress: {},       // {id: {hp, contextIdx, actionsToday, readCount, defeated, defeatedDate}}
   questProgress: {},      // {id: answeredText}
+  storyProgress: {},      // {wordId: 'read'|'cleared'}
   todaySet: [],           // 今日のバトルセット（最大3語のid配列）
   todaySetDate: null,
   submitLog: [],          // [{date, kanji, text, passed, type}] type: 'battle'|'quest'
@@ -1092,7 +1136,16 @@ async function loadAll() {
   const savedWords  = await storageLoad('vq_words');
   const savedQuests = await storageLoad('vq_quests');
   if (savedState)  state  = savedState;
-  if (savedWords)  words  = savedWords;
+  if (savedWords) {
+    words = savedWords;
+    DEFAULT_WORDS.forEach(dw => {
+      const w = words.find(w => w.id === dw.id);
+      if (w) {
+        if (dw.story) w.story = dw.story;
+        if (dw.storyQuiz) w.storyQuiz = dw.storyQuiz;
+      }
+    });
+  }
   if (savedQuests) quests = savedQuests;
 }
 
@@ -1263,7 +1316,8 @@ function buildBattleCards() {
     const prog = state.wordProgress[word.id];
     const hpPct = Math.max(0, (prog.hp / word.maxHp) * 100);
     const ctx = word.contexts[prog.contextIdx % word.contexts.length];
-    const ctxHtml = ctx.text.replace('<WORD>', `<span class="highlight-word">${word.kanji}</span>`);
+    const ctxHtml = ctx.text.replace(/<WORD(?::([^>]*))?>/g, (_, display) =>
+      `<span class="highlight-word">${display || word.kanji}</span>`);
     const isNew = !prog.defeatedDate && (prog.actionsToday || []).length === 0 && (prog.readCount || 0) === 0;
     const isAbstract = word.type === 'abstract';
     const done = prog.actionsToday || [];
@@ -1483,8 +1537,9 @@ function submitWrite(wordId) {
   }
   input.style.borderColor = '';
 
-  // ① ターゲット語句が含まれているか
-  const hasWord = text.includes(word.kanji);
+  // ① ターゲット語句が含まれているか（variantsがあればそちらを語幹として使う）
+  const stem = (word.variants && word.variants.length > 0) ? word.variants[0] : word.kanji;
+  const hasWord = text.includes(stem);
   // ② 文字数 ≥ ターゲット語句の文字数 + 3
   const minLen = word.kanji.length + 3;
   const hasLength = text.length >= minLen;
@@ -1512,7 +1567,7 @@ function submitWrite(wordId) {
     saveAll();
   } else {
     let hint = '';
-    if (!hasWord) hint = '「' + word.kanji + '」という言葉を文の中に入れてみよう！';
+    if (!hasWord) hint = '「' + stem + '」という言葉を文の中に入れてみよう！';
     else if (!hasLength) hint = 'もう少し長い文にしてみよう！<br>主語(だれが・なにが)と述語(どうした)を入れると、もっとよくなるよ！📝';
     feedbackEl.className = 'ai-feedback show retry';
     feedbackEl.innerHTML = '<div class="ai-feedback-label">🔄 もう一度やってみよう！</div>' + hint;
@@ -1687,35 +1742,84 @@ function showDmgFloat(text) {
 // =========================================================
 // BUILD QUEST CARDS
 // =========================================================
-function buildQuestCards() {
-  const container = document.getElementById('questCards');
+function buildStoryCards() {
+  const container = document.getElementById('storyCards');
+  if (!container) return;
   container.innerHTML = '';
 
-  quests.forEach(quest => {
-    const done = state.questProgress[quest.id];
+  const storyWords = words.filter(w => w.story);
+  if (storyWords.length === 0) {
+    container.innerHTML = '<div class="empty-state">ストーリーはまだありません。<br>CSVからデータを読み込んでね📖</div>';
+    return;
+  }
+
+  storyWords.forEach(word => {
+    const prog = state.storyProgress || {};
+    const sp = prog[word.id];
+    const isDefeated = state.wordProgress[word.id]?.defeated;
+    const badge = sp === 'cleared' ? '🥇' : sp === 'read' ? '🥈' : '📖';
     const card = document.createElement('div');
-    card.className = 'quest-card';
+    card.className = 'story-card ' + (isDefeated ? 'unlocked' : 'locked');
     card.innerHTML = `
-      <div class="quest-header">
-        <div class="quest-world-badge">${quest.world.split(' ')[0]}</div>
-        <div class="quest-meta">
-          <div class="quest-world">${quest.world}</div>
-          <div class="quest-name">${quest.name}</div>
+      <div class="story-header">
+        <div class="story-emoji">${word.emoji}</div>
+        <div class="story-meta">
+          <div class="story-word">「${word.kanji}」のストーリー</div>
+          <div class="story-sub">${isDefeated ? (sp === 'cleared' ? '✅ クイズクリア' : sp === 'read' ? '📖 読了' : 'タップして読む') : '🔒 まず倒してみよう！'}</div>
         </div>
-        <div class="quest-reward">⭐ +${quest.xpReward} XP</div>
+        <div class="story-badge">${badge}</div>
       </div>
-      <div class="quest-prompt">${quest.prompt.replace(/\n/g,'<br>')}</div>
-      ${done
-        ? `<div class="quest-done">✅ クリア済み！「${done}」</div>`
-        : `<textarea class="quest-input" id="qa-${quest.id}" rows="3" placeholder="ここに書いてね…"></textarea>
-           <div class="ai-feedback" id="qfeedback-${quest.id}"></div>
-           <button class="quest-submit" data-quest-submit="${quest.id}"
-             onclick="submitQuest('${quest.id}', ${quest.xpReward})">提出(ていしゅつ)する ✨</button>`
-      }
-    `;
+      <div class="story-body" id="stbody-${word.id}">
+        <div>${word.story.replace(/<WORD(?::([^>]*))?>/g, (_, d) => `<span class="highlight-word">${d||word.kanji}</span>`)}</div>
+        ${word.storyQuiz && sp !== 'cleared' ? `
+        <div class="story-quiz" id="stquiz-${word.id}">
+          <div class="story-quiz-q">📝 ${word.storyQuiz.question}</div>
+          ${word.storyQuiz.options.map((opt, i) =>
+            `<button class="story-opt" onclick="answerStoryQuiz('${word.id}', ${i})">${opt}</button>`
+          ).join('')}
+          <div class="story-result" id="stresult-${word.id}"></div>
+        </div>` : sp === 'cleared' ? '<div class="story-result" style="color:var(--hp-green);">🥇 クイズクリア済み！</div>' : ''}
+      </div>`;
+
+    if (isDefeated) {
+      card.querySelector('.story-header').addEventListener('click', () => {
+        const body = document.getElementById('stbody-' + word.id);
+        body.classList.toggle('open');
+        if (body.classList.contains('open') && !sp) {
+          if (!state.storyProgress) state.storyProgress = {};
+          state.storyProgress[word.id] = 'read';
+          saveAll();
+          buildStoryCards();
+        }
+      });
+    }
     container.appendChild(card);
   });
 }
+
+function answerStoryQuiz(wordId, chosenIdx) {
+  const word = words.find(w => w.id === wordId);
+  if (!word?.storyQuiz) return;
+  const correct = word.storyQuiz.correct;
+  const opts = document.querySelectorAll(`#stquiz-${wordId} .story-opt`);
+  opts.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correct) btn.classList.add('correct');
+    else if (i === chosenIdx) btn.classList.add('wrong');
+  });
+  const resultEl = document.getElementById('stresult-' + wordId);
+  if (chosenIdx === correct) {
+    resultEl.innerHTML = '<span style="color:var(--hp-green);">🥇 正解！金バッジゲット！</span>';
+    if (!state.storyProgress) state.storyProgress = {};
+    state.storyProgress[wordId] = 'cleared';
+    saveAll();
+    setTimeout(() => buildStoryCards(), 1000);
+  } else {
+    resultEl.innerHTML = '<span style="color:var(--hp-red);">❌ ざんねん！もう一度読んでみよう。</span>';
+  }
+}
+
+function buildQuestCards() { buildStoryCards(); } // 後方互換
 
 // =========================================================
 // REVIEW SCHEDULE
@@ -1777,7 +1881,9 @@ function buildDefeatedGrid() {
     if (!word) return;
     const chip = document.createElement('div');
     chip.className = 'defeated-chip';
-    chip.innerHTML = `<div class="defeated-emoji">${word.emoji}</div><div class="defeated-word">${word.kanji}</div><div class="defeated-date">${dw.date}</div>`;
+    const sp = (state.storyProgress||{})[word.id];
+    const storyBadge = word.story ? (sp === 'cleared' ? '🥇' : sp === 'read' ? '🥈' : '') : '';
+    chip.innerHTML = `<div class="defeated-emoji">${word.emoji}</div><div class="defeated-word">${word.kanji}</div>${storyBadge ? `<div style="font-size:13px;">${storyBadge}</div>` : ''}<div class="defeated-date">${dw.date}</div>`;
     grid.appendChild(chip);
   });
 }
@@ -1819,7 +1925,14 @@ function importCSV() {
           question: cols[18].trim(),
           options: [cols[19].trim(), cols[20].trim(), cols[21].trim(), cols[22].trim()],
           correct: parseInt(cols[23]) || 0,
-        }
+        },
+        variants: cols[24] ? cols[24].trim().split('|').map(v => v.trim()).filter(Boolean) : [],
+        story: cols[25] ? cols[25].trim() : '',
+        storyQuiz: cols[26] ? {
+          question: cols[26].trim(),
+          options: [cols[27]?.trim()||'', cols[28]?.trim()||'', cols[29]?.trim()||'', cols[30]?.trim()||''],
+          correct: parseInt(cols[31]) || 0,
+        } : null,
       };
     });
 
@@ -1850,7 +1963,7 @@ function importCSV() {
 }
 
 function exportCSV() {
-  const header = 'id,kanji,reading,english,type,emoji,maxHp,meaning,syn1_word,syn1_reading,syn2_word,syn2_reading,c1_source,c1_text,c2_source,c2_text,c3_source,c3_text,quiz_q,quiz_a1,quiz_a2,quiz_a3,quiz_a4,quiz_correct';
+  const header = 'id,kanji,reading,english,type,emoji,maxHp,meaning,syn1_word,syn1_reading,syn2_word,syn2_reading,c1_source,c1_text,c2_source,c2_text,c3_source,c3_text,quiz_q,quiz_a1,quiz_a2,quiz_a3,quiz_a4,quiz_correct,variants,story,story_q,story_a1,story_a2,story_a3,story_a4,story_correct';
   const rows = words.map(w => {
     const s = w.synonyms || [];
     return [
@@ -1859,7 +1972,10 @@ function exportCSV() {
       w.contexts[0]?.source||'', w.contexts[0]?.text||'',
       w.contexts[1]?.source||'', w.contexts[1]?.text||'',
       w.contexts[2]?.source||'', w.contexts[2]?.text||'',
-      w.quiz.question, ...w.quiz.options, w.quiz.correct
+      w.quiz.question, ...w.quiz.options, w.quiz.correct,
+      (w.variants||[]).join('|'),
+      w.story||'',
+      w.storyQuiz?.question||'', ...(w.storyQuiz?.options||['','','',' ']), w.storyQuiz?.correct??''
     ].join(',');
   });
   document.getElementById('csvInput').value = [header, ...rows].join('\n');
@@ -1918,7 +2034,7 @@ function confirmReset() {
   document.getElementById('resetYes').onclick = async () => {
     document.body.removeChild(overlay);
     state = { xp:0, level:1, streak:0, lastPlayDate:null,
-      defeatedWords:[], wordProgress:{}, questProgress:{},
+      defeatedWords:[], wordProgress:{}, questProgress:{}, storyProgress:{},
       todaySet:[], todaySetDate:null, submitLog:[], playLog:{} };
     words = [...DEFAULT_WORDS];
     quests = [...DEFAULT_QUESTS];
@@ -1948,6 +2064,7 @@ function switchTab(name, btn) {
   if (name === 'quest') buildQuestCards();
   if (name === 'review') buildReviewSchedule();
   if (name === 'wall') buildDefeatedGrid();
+  if (name === 'quest') buildStoryCards();
   if (name === 'admin') buildSubmitLog();
 }
 
@@ -1970,7 +2087,7 @@ function buildSubmitLog() {
       ? '<span style="color:var(--hp-green);font-size:11px;">✅ クリア</span>'
       : '<span style="color:var(--hp-red);font-size:11px;">❌ NG</span>';
     const typeBadge = l.type === 'quest'
-      ? '<span style="font-size:10px;color:var(--accent-purple);">📜クエスト</span>'
+      ? '<span style="font-size:10px;color:var(--accent-purple);">📖ストーリー</span>'
       : '<span style="font-size:10px;color:var(--accent-teal);">⚔️バトル</span>';
     return '<div style="border-bottom:1px solid var(--border);padding:8px 4px;font-size:12px;">'
       + '<div style="display:flex;gap:6px;align-items:center;margin-bottom:3px;">'
