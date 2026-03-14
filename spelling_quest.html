@@ -79,6 +79,31 @@
   .header {
     text-align: center;
     margin-bottom: 28px;
+    position: relative;
+    padding-top: 36px;
+  }
+
+  .btn-hq {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--crystal-blue);
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid rgba(79,195,247,0.3);
+    border-radius: 6px;
+    background: rgba(79,195,247,0.07);
+    transition: all 0.25s;
+    white-space: nowrap;
+  }
+
+  .btn-hq:hover {
+    background: rgba(79,195,247,0.15);
+    border-color: rgba(79,195,247,0.6);
+    box-shadow: 0 0 12px rgba(79,195,247,0.25);
   }
 
   .header-title {
@@ -731,6 +756,7 @@
 
   <!-- Header -->
   <div class="header">
+    <a href="index.html" class="btn-hq">⌂ HQ</a>
     <div class="header-title">Padawan Training · Ilum</div>
     <div class="header-main">Crystal Seeker</div>
   </div>
